@@ -1,32 +1,798 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="styles.css" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus App</title>
-        <script type="module" src="/main.js" defer></script>
-    </head>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>动态系统跟踪平台</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
 
-    <body>
-        <main class="container">
-            <h1>Welcome to PakePlus</h1>
-            <form class="row" id="greet-form">
-                <input id="inputValue" placeholder="Enter a something..." />
-            </form>
-            <div class="resultBox">
-                <span>result: </span>
-                <span id="result"></span>
+        body {
+            background: url('./images/backgroud1.jpeg') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100%;
+            height: 100vh;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            grid-template-rows: auto 1fr auto;
+            gap: 20px;
+            background: transparent;
+        }
+
+        /* 统一设置所有面板的透明效果 */
+        .header,
+        .left-panel,
+        .map-container,
+        .right-panel,
+        .footer {
+            background: rgba(16, 33, 68, 0.1);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.1);
+        }
+
+        /* 顶部样式 */
+        .header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            background: rgba(16, 33, 68, 0.7);
+            border: 1px solid rgba(64, 128, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        .weather-info {
+            display: flex;
+            gap: 20px;
+        }
+
+        .weather-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #4facfe;
+        }
+
+        /* 左侧面板 */
+        .left-panel {
+            background: rgba(16, 33, 68, 0.7);
+            border: 1px solid rgba(64, 128, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .info-group {
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .info-label {
+            color: rgba(140, 179, 255, 0.3);
+        }
+
+        /* 中间地图区域 */
+        .map-container {
+            background: rgba(16, 33, 68, 0.1);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background: url('images/地图.png') no-repeat center center;
+            background-size: contain;
+            opacity: 0.8;
+            position: relative;
+        }
+
+        .location-marker {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: url('./images/bj1.gif') no-repeat center center;
+            background-size: contain;
+            opacity: 0.9;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .location-marker:hover {
+            transform: scale(3);
+            opacity: 1;
+        }
+
+        /* 右侧健康状态 */
+        .right-panel {
+            background: rgba(16, 33, 68, 0.7);
+            border: 1px solid rgba(64, 128, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .health-status {
+            margin-bottom: 15px;
+        }
+
+        .health-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            gap: 10px;
+        }
+
+        .health-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .health-good {
+            background: #2ecc71;
+        }
+
+        .health-warning {
+            background: #f1c40f;
+        }
+
+        .health-bad {
+            background: #e74c3c;
+        }
+
+        /* 柱形图样式 */
+        .health-chart {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .chart-title {
+            color: rgba(79, 172, 254, 0.8);
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .chart-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            height: 120px;
+            gap: 8px;
+        }
+
+        .chart-bar {
+            flex: 1;
+            background: linear-gradient(to top, rgba(79, 172, 254, 0.3), rgba(79, 172, 254, 0.6));
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            transition: all 0.3s ease;
+            min-width: 20px;
+        }
+
+        .chart-bar:hover {
+            background: linear-gradient(to top, rgba(79, 172, 254, 0.5), rgba(79, 172, 254, 0.8));
+            transform: scaleY(1.05);
+        }
+
+        .chart-bar.warning {
+            background: linear-gradient(to top, rgba(241, 196, 15, 0.3), rgba(241, 196, 15, 0.6));
+        }
+
+        .chart-bar.warning:hover {
+            background: linear-gradient(to top, rgba(241, 196, 15, 0.5), rgba(241, 196, 15, 0.8));
+        }
+
+        .chart-bar.danger {
+            background: linear-gradient(to top, rgba(231, 76, 60, 0.3), rgba(231, 76, 60, 0.6));
+        }
+
+        .chart-bar.danger:hover {
+            background: linear-gradient(to top, rgba(231, 76, 60, 0.5), rgba(231, 76, 60, 0.8));
+        }
+
+        .chart-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            white-space: nowrap;
+        }
+
+        .chart-value {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: bold;
+        }
+
+        /* 底部表格 */
+        .footer {
+            grid-column: 1 / -1;
+            background: rgba(16, 33, 68, 0.7);
+            border: 1px solid rgba(64, 128, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* 添加鼠标悬停效果 */
+        .header:hover,
+        .left-panel:hover,
+        .map-container:hover,
+        .right-panel:hover,
+        .footer:hover {
+            background: rgba(16, 33, 68, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        /* 优化文字可读性 */
+        .info-label {
+            color: rgba(140, 179, 255, 0.3);
+        }
+
+        th {
+            color: rgba(79, 172, 254, 0.3);
+        }
+
+        /* 输入框样式 */
+        .input-field {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            color: #fff;
+            padding: 4px 8px;
+            width: 60px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: rgba(79, 172, 254, 0.5);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .input-field::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* 图片弹出层样式 */
+        .image-popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .image-popup.show {
+            opacity: 1;
+        }
+
+        .popup-content {
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            position: relative;
+            max-width: 80%;
+            max-height: 80%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform: scale(0.3) rotate(-180deg);
+            opacity: 0;
+            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .popup-content.show {
+            transform: scale(1) rotate(0deg);
+            opacity: 1;
+        }
+
+        .popup-content img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 4px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 30px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            z-index: 1001;
+            background: rgba(255, 255, 255, 0.9);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            transform: scale(0);
+        }
+
+        .close-button.show {
+            transform: scale(1);
+        }
+
+        .close-button:hover {
+            background: #ff4757;
+            color: white;
+            transform: scale(1.1) rotate(90deg);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部信息 -->
+        <header class="header">
+            <h1>动态系统跟踪平台</h1>
+            <div class="weather-info">
+                <div class="weather-item">
+                    <i class="fas fa-sun"></i>
+                    <span>晴朗</span>
+                </div>
+                <div class="weather-item">
+                    <i class="fas fa-calendar"></i>
+                    <span id="currentDateTime">2025/5/13 00:00:00</span>
+                </div>
+                <div class="weather-item">
+                    <i class="fas fa-temperature-high"></i>
+                    <span>17℃</span>
+                </div>
+                <div class="weather-item">
+                    <i class="fas fa-tint"></i>
+                    <span>83%</span>
+                </div>
             </div>
-            <div class="invokeBox">
-                <button id="openUrl">open_url_browser</button>
-                <button id="openUrlNew">open_url_new</button>
-                <button id="runCommand">run_command</button>
-                <button id="downloadFile">download_file</button>
-                <button id="getExeDir">get_exe_dir</button>
-                <button id="getEnvVar">get_env_var</button>
-                <button id="findPort">find_port</button>
+        </header>
+
+        <!-- 左侧信息面板 -->
+        <div class="left-panel">
+            <div class="info-group">
+                <h3>箱体信息</h3>
+                <div class="info-item">
+                    <span class="info-label">箱体编号</span>
+                    <input type="number" id="boxNumber" class="input-field" min="1" max="5" value="1" placeholder="1-5">
+                </div>
+                <div class="info-item">
+                    <span class="info-label">箱体载重</span>
+                    <span id="boxWeight">6T</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">下次检验日期</span>
+                    <span id="nextInspection">2025/8/4</span>
+                </div>
             </div>
-        </main>
-    </body>
-</html>
+
+            <div class="info-group">
+                <h3>索具信息</h3>
+                <div class="info-item">
+                    <span class="info-label">索具编号</span>
+                    <span id="riggingNumber">AC230304</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">索具载重</span>
+                    <span id="riggingWeight">1200KN</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">检验日期</span>
+                    <span id="riggingInspection">2025/2/9</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 中间地图容器 -->
+        <div class="map-container">
+            <!-- 这里需要使用专门的地图库来实现3D地图效果 -->
+            <div id="map">
+                <div id="locationMarker" class="location-marker" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- 图片弹出层 -->
+        <div id="imagePopup" class="image-popup">
+            <div class="popup-content">
+                <span class="close-button">&times;</span>
+                <img id="popupImage" src="" alt="Popup Image">
+            </div>
+        </div>
+
+        <!-- 右侧健康状态 -->
+        <div class="right-panel">
+            <h3>健康状态</h3>
+            <div class="health-status">
+                <div class="health-item">
+                    <div class="health-indicator health-good"></div>
+                    <span>磨损程度1</span>
+                    <span>5.2mm</span>
+                </div>
+                <div class="health-item">
+                    <div class="health-indicator health-good"></div>
+                    <span>磨损程度2</span>
+                    <span>5.2mm</span>
+                </div>
+                <div class="health-item">
+                    <div class="health-indicator health-warning"></div>
+                    <span>磨损程度3</span>
+                    <span>5.2mm</span>
+                </div>
+            </div>
+
+            <!-- 健康状态柱形图 -->
+            <div class="health-chart">
+                <div class="chart-title">设备健康度分析</div>
+                <div class="chart-container">
+                    <div class="chart-bar" id="bar1" style="height: 75%;">
+                        <div class="chart-value">75%</div>
+                        <div class="chart-label">温度</div>
+                    </div>
+                    <div class="chart-bar" id="bar2" style="height: 85%;">
+                        <div class="chart-value">85%</div>
+                        <div class="chart-label">压力</div>
+                    </div>
+                    <div class="chart-bar warning" id="bar3" style="height: 60%;">
+                        <div class="chart-value">60%</div>
+                        <div class="chart-label">振动</div>
+                    </div>
+                    <div class="chart-bar" id="bar4" style="height: 90%;">
+                        <div class="chart-value">90%</div>
+                        <div class="chart-label">电流</div>
+                    </div>
+                    <div class="chart-bar danger" id="bar5" style="height: 45%;">
+                        <div class="chart-value">45%</div>
+                        <div class="chart-label">噪音</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部货物信息 -->
+        <footer class="footer">
+            <h3>货物信息</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>货物名称</th>
+                        <th>型号</th>
+                        <th>剩余数量</th>
+                        <th>状态</th>
+                        <th>存货时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>吊带</td>
+                        <td>10T</td>
+                        <td>5</td>
+                        <td>存放</td>
+                        <td>2025.03.15</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>升降声产品</td>
+                        <td>5T</td>
+                        <td>4</td>
+                        <td>取出</td>
+                        <td>2025.03.18</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>二传动机</td>
+                        <td>YD-500-HD</td>
+                        <td>6</td>
+                        <td>存放</td>
+                        <td>2025.03.09</td>
+                    </tr>
+                </tbody>
+            </table>
+        </footer>
+    </div>
+
+    <script>
+        // 五组数据配置
+        const dataSets = {
+            1: {
+                boxWeight: "6T",
+                nextInspection: "2025/8/4",
+                riggingNumber: "AC230304",
+                riggingWeight: "1200KN",
+                riggingInspection: "2025/2/9",
+                wear1: "5.2mm",
+                wear2: "5.2mm",
+                wear3: "5.2mm",
+                wear3Status: "good",
+                location: { left: "20%", top: "30%" },
+                popupImage: "./images/fj1.jpg",
+                chartData: {
+                    temperature: { value: 75, status: "good" },
+                    pressure: { value: 85, status: "good" },
+                    vibration: { value: 60, status: "warning" },
+                    current: { value: 90, status: "good" },
+                    noise: { value: 45, status: "danger" }
+                }
+            },
+            2: {
+                boxWeight: "8T",
+                nextInspection: "2025/9/15",
+                riggingNumber: "BD240501",
+                riggingWeight: "1500KN",
+                riggingInspection: "2025/3/20",
+                wear1: "4.8mm",
+                wear2: "5.5mm",
+                wear3: "6.1mm",
+                wear3Status: "warning",
+                location: { left: "60%", top: "40%" },
+                popupImage: "./images/fj2.jpg",
+                chartData: {
+                    temperature: { value: 82, status: "warning" },
+                    pressure: { value: 78, status: "good" },
+                    vibration: { value: 55, status: "warning" },
+                    current: { value: 88, status: "good" },
+                    noise: { value: 52, status: "danger" }
+                }
+            },
+            3: {
+                boxWeight: "10T",
+                nextInspection: "2025/7/22",
+                riggingNumber: "CE250612",
+                riggingWeight: "1800KN",
+                riggingInspection: "2025/4/8",
+                wear1: "5.8mm",
+                wear2: "4.9mm",
+                wear3: "7.2mm",
+                wear3Status: "bad",
+                location: { left: "40%", top: "60%" },
+                popupImage: "./images/fj3.jpg",
+                chartData: {
+                    temperature: { value: 88, status: "danger" },
+                    pressure: { value: 72, status: "warning" },
+                    vibration: { value: 48, status: "danger" },
+                    current: { value: 85, status: "good" },
+                    noise: { value: 38, status: "danger" }
+                }
+            },
+            4: {
+                boxWeight: "12T",
+                nextInspection: "2025/10/3",
+                riggingNumber: "DF260723",
+                riggingWeight: "2000KN",
+                riggingInspection: "2025/5/12",
+                wear1: "4.5mm",
+                wear2: "5.1mm",
+                wear3: "5.9mm",
+                wear3Status: "warning",
+                location: { left: "80%", top: "50%" },
+                popupImage: "./images/fj4.jpg",
+                chartData: {
+                    temperature: { value: 79, status: "good" },
+                    pressure: { value: 91, status: "good" },
+                    vibration: { value: 65, status: "warning" },
+                    current: { value: 92, status: "good" },
+                    noise: { value: 58, status: "warning" }
+                }
+            },
+            5: {
+                boxWeight: "15T",
+                nextInspection: "2025/6/18",
+                riggingNumber: "EG270834",
+                riggingWeight: "2500KN",
+                riggingInspection: "2025/1/25",
+                wear1: "5.0mm",
+                wear2: "4.7mm",
+                wear3: "4.8mm",
+                wear3Status: "good",
+                location: { left: "30%", top: "70%" },
+                popupImage: "./images/fj5.jpg",
+                chartData: {
+                    temperature: { value: 72, status: "good" },
+                    pressure: { value: 88, status: "good" },
+                    vibration: { value: 78, status: "good" },
+                    current: { value: 95, status: "good" },
+                    noise: { value: 82, status: "good" }
+                }
+            }
+        };
+
+        // 更新页面数据
+        function updateData(boxNumber) {
+            const data = dataSets[boxNumber];
+            if (!data) return;
+
+            // 更新箱体信息
+            document.getElementById('boxWeight').textContent = data.boxWeight;
+            document.getElementById('nextInspection').textContent = data.nextInspection;
+            
+            // 更新索具信息
+            document.getElementById('riggingNumber').textContent = data.riggingNumber;
+            document.getElementById('riggingWeight').textContent = data.riggingWeight;
+            document.getElementById('riggingInspection').textContent = data.riggingInspection;
+            
+            // 更新健康状态
+            const wearItems = document.querySelectorAll('.health-item span:nth-child(2)');
+            wearItems[0].textContent = data.wear1;
+            wearItems[1].textContent = data.wear2;
+            wearItems[2].textContent = data.wear3;
+            
+            // 更新健康状态指示器
+            const wear3Indicator = document.querySelector('.health-item:nth-child(3) .health-indicator');
+            wear3Indicator.className = `health-indicator health-${data.wear3Status}`;
+
+            // 更新位置标记
+            const locationMarker = document.getElementById('locationMarker');
+            if (locationMarker) {
+                locationMarker.style.left = data.location.left;
+                locationMarker.style.top = data.location.top;
+                locationMarker.style.display = 'block';
+            }
+
+            // 更新柱形图数据
+            const chartBars = document.querySelectorAll('.health-chart .chart-bar');
+            chartBars.forEach((bar, index) => {
+                const metricName = Object.keys(data.chartData)[index];
+                const metricData = data.chartData[metricName];
+                bar.style.height = `${metricData.value}%`;
+                const chartValue = bar.querySelector('.chart-value');
+                const chartLabel = bar.querySelector('.chart-label');
+                if (chartValue) chartValue.textContent = `${metricData.value}%`;
+                if (chartLabel) chartLabel.textContent = metricName;
+
+                // 更新柱形图指示器颜色
+                const healthIndicator = document.querySelector(`.health-item:nth-child(${index + 1}) .health-indicator`);
+                healthIndicator.className = `health-indicator health-${metricData.status}`;
+            });
+        }
+
+        // 监听输入框变化
+        document.getElementById('boxNumber').addEventListener('input', function(e) {
+            const value = parseInt(e.target.value);
+            if (value >= 1 && value <= 5) {
+                updateData(value);
+            }
+        });
+
+        // 地图标记点击事件
+        document.getElementById('locationMarker').addEventListener('click', function() {
+            const currentBoxNumber = parseInt(document.getElementById('boxNumber').value);
+            const data = dataSets[currentBoxNumber];
+            if (data && data.popupImage) {
+                const popup = document.getElementById('imagePopup');
+                const popupContent = document.querySelector('.popup-content');
+                const closeButton = document.querySelector('.close-button');
+                
+                document.getElementById('popupImage').src = data.popupImage;
+                popup.style.display = 'flex';
+                
+                // 触发动画
+                setTimeout(() => {
+                    popup.classList.add('show');
+                    setTimeout(() => {
+                        popupContent.classList.add('show');
+                        setTimeout(() => {
+                            closeButton.classList.add('show');
+                        }, 200);
+                    }, 100);
+                }, 50);
+            }
+        });
+
+        // 关闭按钮点击事件
+        document.querySelector('.close-button').addEventListener('click', function() {
+            const popup = document.getElementById('imagePopup');
+            const popupContent = document.querySelector('.popup-content');
+            const closeButton = document.querySelector('.close-button');
+            
+            // 反向动画
+            closeButton.classList.remove('show');
+            setTimeout(() => {
+                popupContent.classList.remove('show');
+                setTimeout(() => {
+                    popup.classList.remove('show');
+                    setTimeout(() => {
+                        popup.style.display = 'none';
+                    }, 500);
+                }, 300);
+            }, 100);
+        });
+
+        // 点击弹出层外部关闭
+        document.getElementById('imagePopup').addEventListener('click', function(e) {
+            if (e.target === this) {
+                const popup = document.getElementById('imagePopup');
+                const popupContent = document.querySelector('.popup-content');
+                const closeButton = document.querySelector('.close-button');
+                
+                // 反向动画
+                closeButton.classList.remove('show');
+                setTimeout(() => {
+                    popupContent.classList.remove('show');
+                    setTimeout(() => {
+                        popup.classList.remove('show');
+                        setTimeout(() => {
+                            popup.style.display = 'none';
+                        }, 500);
+                    }, 300);
+                }, 100);
+            }
+        });
+
+        // 实时更新时间
+        function updateDateTime() {
+            const now = new Date();
+            const dateOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            const dateTimeString = now.toLocaleDateString('zh-CN', dateOptions) + ' ' + now.toLocaleTimeString('zh-CN', timeOptions);
+            document.getElementById('currentDateTime').textContent = dateTimeString;
+        }
+
+        // 每秒更新一次时间
+        setInterval(updateDateTime, 1000);
+        // 初始化时间
+        updateDateTime();
+
+        // 初始化数据
+        updateData(1);
+    </script>
+</body>
+</html> 
